@@ -1,3 +1,11 @@
+This git is an unofficial implementation of the following paper UNSUPERVISED 
+REPRESENTATION LEARNING PREDICTING IMAGE ROTATIONS - 2018
+
+The idea is to first augment the dataset by generating random rotations of the 
+images by 0, 90, 180, or 270 degrees. The second step is to train the model on 
+this dataset to learn to predict the image rotation. Finally, use the obtained
+weights as initialization to train on a much smaller labeled dataset.
+
 Results with 30 epochs and default training parameters,
 trained on GPU from Colab:
 
