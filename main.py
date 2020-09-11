@@ -1,3 +1,121 @@
+# alt+shift+E to run selected lines in console
+
+import time
+import numpy as np
+import matplotlib.pyplot as plt
+import torch.optim as optim
+from utils import *
+from data import *
+from model import *
+import os
+import torch
+import torchvision
+from torchvision import datasets, transforms
+from torchvision import transforms
+from torch.utils.data import Dataset, DataLoader
+
+
+
+def evaluate(classifier, val_loader, val_length):
+    XELoss = nn.CrossEntropyLoss(reduction="mean")
+    val_images, val_labels = next(iter(val_loader))
+    with torch.no_grad():
+        prediction = classifier(val_images)
+    val_loss = XELoss(prediction, val_labels)
+    predicted_labels = torch.argmax(prediction, dim=1)
+    accuracy = np.round(100.0 * (predicted_labels == val_labels).sum().item() / val_length, 2)
+    del val_images, val_labels
+    return accuracy, val_loss
+
+
+def testing(classifier, test_loader):
+    XELoss = nn.CrossEntropyLoss(reduction="mean")
+    test_images, test_labels = next(iter(test_loader))
+    with torch.no_grad():
+        prediction = classifier(test_images)
+        predicted_labels = torch.argmax(prediction, dim=1)
+        accuracy = 100.0 * (predicted_labels == test_labels).sum().item() / len(test_labels)
+        test_loss = XELoss(prediction, test_labels)
+        del test_images, test_labels, prediction
+    return accuracy, test_loss
+
+
+def training_fc(
+        classifier,
+        batch_size_l=32,
+        labeled_data_ratio = 1.,
+        training_data_ratio = 0.8,
+        without_unlabeled = False,
+        lr=1e-4,
+        n_epochs=30):
+
+    # data loaders
+    (
+        train_loader,
+        val_loader,
+        test_loader,
+        train_val
+    ) = data_loaders(batch_size_l, dataset='mnist', K=1,
+                     batch_size_u=None, labeled_data_ratio=labeled_data_ratio,
+                     training_data_ratio=training_data_ratio,
+                     without_unlabeled=without_unlabeled)
+
+    XELoss = nn.CrossEntropyLoss(reduction="mean")
+    optimizer = optim.Adam(classifier.parameters(), lr=lr)
+
+    train_losses = []
+    val_losses = []
+    val_accuracies = []
+    test_losses = []
+    test_accuracies = []
+
+    x_counter = 0
+    x_idxes = []
+
+    x_idxes.append(x_counter)
+    accuracy, val_loss = evaluate(classifier, val_loader, train_val[1])
+    val_losses.append(val_loss)
+    val_accuracies.append(accuracy)
+
+    accuracy, test_loss = testing(classifier, test_loader)
+    test_losses.append(test_loss)
+    test_accuracies.append(accuracy)
+
+    for epoch in range(1, n_epochs+1):
+        print(f"Starting epoch {epoch}")
+        for local_X, local_y in iter(train_loader):
+            prediction = classifier(local_X)
+            loss = XELoss(prediction, local_y)
+
+            # gradient step
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            # appending losses
+            train_losses.append(loss)
+            x_counter += 1
+
+        x_idxes.append(x_counter)
+        accuracy, val_loss = evaluate(classifier, val_loader, train_val[1])
+        val_losses.append(val_loss)
+        val_accuracies.append(accuracy)
+
+        accuracy, test_loss = testing(classifier, test_loader)
+        test_losses.append(test_loss)
+        test_accuracies.append(accuracy)
+
+    plt.figure()
+    plt.title('XELosses')
+    plt.xlabel('iterations')
+    plt.ylabel('XE losses')
+    plt.plot(train_losses, label='train')
+    plt.plot(x_idxes, val_losses, label='val')
+    plt.plot(x_idxes, test_losses, label='test')
+    plt.legend()
+    plt.savefig('training_losses.png')
+    plt.show()
+
 
 import time, os
 import torch
@@ -74,3 +192,4 @@ accuracy, test_loss = training_fc(
 
 t1 = time.time()
 print(f'CASE2:: test_accuracy: {accuracy}% ; test_XELoss: {test_loss} -- total time '+get_duration(t0, t1))
+
