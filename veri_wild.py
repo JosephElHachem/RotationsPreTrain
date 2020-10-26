@@ -3,6 +3,8 @@ import torch
 import os.path as osp
 from PIL import Image, ImageFile
 from torch.utils.data import Dataset
+from torchvision import transforms
+
 from utils import read_image
 
 
@@ -12,8 +14,8 @@ class DatasetFetcher(Dataset):
         self,
         path_to_images=None,
         path_to_list=None,
-        root='/data/nfs_Databases/jelhachem/veri_wild/images/train',
-        transform=None
+        root_data_from_list='/data/nfs_Databases/jelhachem/veri_wild/images/train',
+        transform=transforms.ToTensor()
     ):
         '''
         Specify either path_to_images and set path_to_list=None or the opposite.
@@ -27,7 +29,7 @@ class DatasetFetcher(Dataset):
         if path_to_images is not None:
             self.dataset = self._get_paths_from_dir(path_to_images)
         elif path_to_list is not None:
-            self.dataset = self._get_paths_from_list(path_to_list, root)
+            self.dataset = self._get_paths_from_list(path_to_list, root_data_from_list)
         else:
             raise ValueError()
         self.transform = transform
@@ -39,14 +41,6 @@ class DatasetFetcher(Dataset):
     def print_dataset_statistics(self):
         length = len(self.dataset)
         print(f"------------------ dataset length: {length} ------------------")
-        # print("Dataset statistics:")
-        # print("  ----------------------------------------")
-        # print("  subset   | # ids | # images | # cameras")
-        # print("  ----------------------------------------")
-        # print("  train    | {:5d} | {:8d} | {:9d}".format(num_train_pids, num_train_imgs, num_train_cams))
-        # print("  query    | {:5d} | {:8d} | {:9d}".format(num_query_pids, num_query_imgs, num_query_cams))
-        # print("  gallery  | {:5d} | {:8d} | {:9d}".format(num_gallery_pids, num_gallery_imgs, num_gallery_cams))
-        # print("  ----------------------------------------")
 
     def _check_before_run(self, path):
         """Check if all files are available before going deeper"""
@@ -77,7 +71,7 @@ class DatasetFetcher(Dataset):
         else:
             pass
 
-    def _get_paths_from_list(self, path, root):
+    def _get_paths_from_list(self, path, root_data_from_list):
         print(f"------- Reading data from list {path} ---------")
         if path is not None:
             print('reading text file')
@@ -86,7 +80,7 @@ class DatasetFetcher(Dataset):
                 for line in f:
                     #format: model_id/img_path vehicle_id camera_id
                     a, vid, _ = line.split(' ')
-                    img_path = osp.join(root, a.split('/')[1])
+                    img_path = osp.join(root_data_from_list, a.split('/')[1])
                     dataset.append((img_path, vid))
             return dataset
         else:

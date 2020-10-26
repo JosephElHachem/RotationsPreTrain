@@ -2,9 +2,9 @@ import torch.nn as nn
 import torchvision.models as models
 
 class resnet_phi(nn.Module):
-    def __init__(self):
+    def __init__(self, pretrained=False):
         super().__init__()
-        resnet = models.resnet18(pretrained=False)
+        resnet = models.resnet18(pretrained=pretrained)
         self.features = nn.Sequential(*list(resnet.children())[:-1])
         self.feature_size = resnet.fc.in_features
     def forward(self, x):
@@ -27,7 +27,7 @@ class rotation_model(nn.Module):
 class model_phi(nn.Module):
     def __init__(self):
         super().__init__()
-        self.conv1 = nn.Conv2d(1, 16, 3)
+        self.conv1 = nn.Conv2d(3, 16, 3)
         self.conv2 = nn.Conv2d(16, 32, 3)
         self.conv3 = nn.Conv2d(32, 64, 3)
         self.feature_size = 30976
